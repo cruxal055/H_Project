@@ -1,0 +1,123 @@
+#include <QString>
+#include <QXmlStreamReader>
+#include <QFile>
+#include <QDebug>
+#include <QList>
+#include <QMap>
+#include <cmath>
+#include <sstream>
+
+using namespace std;
+
+bool writeOut(QString value);
+void openFiles(QFile &in, QFile &out, QXmlStreamReader &reader, QXmlStreamWriter &xmlWriter);
+void convert(QXmlStreamReader & reader, QXmlStreamWriter &xmlWriter);
+void writeOutWayPoints(QXmlStreamWriter &xmlWriter, const QString &points);
+
+int main(int argc, char *argv[])
+{
+    QFile out, in;
+    QXmlStreamReader reader;
+    QXmlStreamWriter xmlWriter;
+    openFiles(in,out,reader,xmlWriter);
+    convert(reader,xmlWriter);
+    out.close();
+    in.close();
+    return 0;
+}
+
+void convert(QXmlStreamReader &reader, QXmlStreamWriter &xmlWriter)
+{
+    QString text, key;
+    QMap<QString, QString> data;
+    QList<QXmlStreamAttribute> letsHope;
+    
+
+    while(!reader.atEnd())
+    {
+        reader.readNextStartElement();
+        if(reader.name() == "SimpleData")
+        {
+            do
+            {
+                letsHope = reader.attributes().toList();
+                key = letsHope[0].value().toString();
+                data[key] = reader.readElementText();
+                reader.readNext();
+            }while(reader.name() == "SimpleData"); //previously, it was, while(reader.name() != "SimpleData");
+        } //added brackets here
+        if(reader.name() == "LineString")
+        {
+            reader.readNextStartElement();
+            data[reader.name().toString()] = reader.readElementText();
+            if(data["ZIP_L"] == "90041" || data["ZIP_L"] == "90042" || data["ZIP_L"] == "90065")
+            {
+                xmlWriter.writeStartElement("STREET");
+                for(auto it = data.begin(); it != data.end(); ++it)
+                {
+                    if(it.key() == "ADLF")
+                        xmlWriter.writeTextElement("FROM_ADDRESS", it.value());
+                    else
+                       if(it.key() == "ADRT")
+                           xmlWriter.writeTextElement("TO_ADDRESS", it.value());
+                       else
+                           if(it.key() == "coordinates")
+                               writeOutWayPoints(xmlWriter, it.value());
+                           else
+                              if(writeOut(it.key()))
+                                xmlWriter.writeTextElement(it.key(), it.value());
+                }
+                xmlWriter.writeEndElement();
+                data.clear();
+             }
+        }
+    }
+    xmlWriter.writeEndDocument();
+    qDebug() << "done!\n";
+}
+
+void openFiles(QFile &in, QFile &out, QXmlStreamReader &reader, QXmlStreamWriter &xmlWriter)
+{
+    in.setFileName("Streets_Centerline.kml");
+    if(!in.open(QFile::ReadOnly | QFile::Text))
+    {
+       qDebug() << "Cannot read file" << in.errorString();
+       exit(0);
+    }
+    out.setFileName("streets.xml");
+    out.open(QIODevice::WriteOnly);
+    reader.setDevice(&in);
+    xmlWriter.setDevice(&out);
+    xmlWriter.setAutoFormatting(true);
+    xmlWriter.writeStartDocument();
+}
+
+
+bool writeOut(QString value)
+{
+    static QStringList whatIneed = {"ASSETID", "STNAME", "STNUM", "STSFX", "TDIR",
+                                    "ZIP_L", "SFXDIR"};
+    bool needIt = false;
+    for(int i = 0; i < whatIneed.size(); ++i)
+        needIt |= value == whatIneed[i];
+    return needIt;
+}
+
+void writeOutWayPoints(QXmlStreamWriter &xmlWriter, const QString &points)
+{
+    stringstream ss;
+    string point, lat,lon;
+    size_t pos;
+    ss<<points.toStdString();
+    xmlWriter.writeStartElement("COORDINATES");
+    while(ss>>point)
+    {
+        xmlWriter.writeStartElement("WAYPOINT");
+        lon = point.substr(0, pos = point.find(','));
+        lat = point.substr(pos+1);
+        xmlWriter.writeTextElement("LATITUDE", lat.c_str());
+        xmlWriter.writeTextElement("LONGITUDE", lon.c_str());
+        xmlWriter.writeEndElement();
+    }
+    xmlWriter.writeEndElement();
+}
