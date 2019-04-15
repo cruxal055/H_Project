@@ -1,0 +1,295 @@
+#include <QCoreApplication>
+#include <iostream>
+#include <QXmlStreamReader>
+#include <map>
+#include <QFile>
+#include <set>
+#include <algorithm>
+
+using namespace std;
+
+
+struct range
+{
+    public:
+        QString one, two;
+    range()
+    {
+        one = "";
+        two = "";
+    }
+    range &operator=(const range &other)
+    {
+        if(this != &other)
+        {
+            one = other.one;
+            two = other.two;
+        }
+        return *this;
+    }
+    range(const range &other)
+    {
+        one = other.one;
+        two = other.two;
+    }
+    friend bool operator<=(const range &o1, const range &o2)
+        {
+            return o1.two <= o2.two;
+        }
+
+        friend bool operator>=(const range &o1 ,const range &o2)
+        {
+            return o1.two >= o2.two;
+        }
+        friend bool operator>(const range &o1 ,const range &o2)
+        {
+            return o1.two > o2.two;
+        }
+        friend bool operator<(const range &o1 ,const range &o2)
+        {
+            return o1.two < o2.two;
+        }
+
+};
+
+struct coordinates
+{
+    public:
+        QString lattitude, longitude;
+        coordinates()
+        {
+            lattitude = " ";
+            longitude = " ";
+        }
+        coordinates &operator=(const coordinates &other)
+        {
+            if(this != &other)
+            {
+                lattitude = other.lattitude;
+                longitude = other.longitude;
+            }
+            return *this;
+        }
+
+        coordinates(const coordinates &other)
+        {
+            lattitude = other.lattitude;
+            longitude = other.longitude;
+        }
+
+        friend bool operator<=(const coordinates &o1 ,const coordinates &o2)
+        {
+            return o1.longitude <= o2.longitude;
+        }
+
+        friend bool operator>=(const coordinates &o1 ,const coordinates &o2)
+        {
+            return o1.longitude >= o2.longitude;
+        }
+        friend bool operator>(const coordinates &o1 ,const coordinates &o2)
+        {
+            return o1.longitude > o2.longitude;
+        }
+        friend bool operator<(const coordinates &o1 ,const coordinates &o2)
+        {
+            return o1.longitude < o2.longitude;
+        }
+};
+
+class street
+{
+    public:
+
+        QString fromAddress, toAddress, streetNum, zipCode;
+        QString streetName, streetSFX;
+        QString direction;
+        vector<coordinates> waypoints;
+        set<coordinates> hasAlready;
+
+
+        street()
+        {
+            fromAddress = toAddress = streetNum = zipCode = "";
+            streetName = streetSFX = "";
+            direction = "";
+        }
+
+        street(const street &other)
+        {
+            fromAddress = other.fromAddress;
+            toAddress = other.toAddress;
+            streetNum = other.streetNum;
+            zipCode = other.zipCode;
+            streetName = other.streetName;
+            streetSFX = other.streetSFX;
+            direction = other.direction;
+            waypoints = other.waypoints;
+            hasAlready = other.hasAlready;
+        }
+
+        street& operator=(const street &other)
+        {
+            if(this != &other)
+            {
+                fromAddress = other.fromAddress;
+                toAddress = other.toAddress;
+                streetNum = other.streetNum;
+                zipCode = other.zipCode;
+                streetName = other.streetName;
+                streetSFX = other.streetSFX;
+                direction = other.direction;
+                waypoints = other.waypoints;
+               hasAlready = other.hasAlready;
+            }
+            return *this;
+        }
+};
+
+
+void writeOut(map<QString, street> &toOutput)
+{
+    QFile out;
+    QXmlStreamWriter output;
+    out.setFileName("sanitized.xml");
+    out.open(QIODevice::WriteOnly);
+    output.setDevice(&out);
+    output.setAutoFormatting(true);
+    output.writeStartDocument();
+    output.writeStartElement("EAGLE_ROCK");
+    for(auto i = toOutput.begin(); i != toOutput.end(); ++i)
+    {
+      output.writeStartElement("STREET");
+       output.writeTextElement("FROM_ADDRESS", i->second.fromAddress);
+       output.writeTextElement("TO_ADDRESS", i->second.toAddress);
+       output.writeTextElement("STREET_NAME", i->second.streetName);
+       output.writeTextElement("STREET_NUM", i->second.streetNum);
+       output.writeTextElement("STREET_SFX", i->second.streetSFX);
+       output.writeTextElement("TDIR", i->second.direction);
+       output.writeTextElement("ZIP", i->second.zipCode);
+       for(unsigned int j = 0; j < i->second.waypoints.size(); ++j)
+       {
+           output.writeTextElement("LATTITUDE" , i->second.waypoints[j].lattitude);
+           output.writeTextElement("LONGITUDE" , i->second.waypoints[j].longitude);
+       }
+       output.writeEndElement();
+    }
+    output.writeEndElement();
+    output.writeEndDocument();
+    cout << "i wrote out\n";
+
+}
+
+int main(int argc, char *argv[])
+{
+    QFile stream;
+    stream.setFileName("streets4.xml");
+    stream.open(QFile::ReadOnly | QFile::Text);
+    map<QString,street> master;
+    QXmlStreamReader streamer;
+    streamer.setDevice(&stream);
+    streamer.readNextStartElement();
+    streamer.readNextStartElement();
+    int counter = 0;
+    while(!streamer.atEnd())
+    {
+      //  cout << "the counter is: " << counter << endl;
+        //cout << "------------------------------------- " << counter << endl;
+//        if(counter == 100)
+//            break;
+        string item;
+        street temp;
+        coordinates grid;
+
+        if(streamer.name() == "STREET" )
+        {
+      //      cout << "be looking at: " << streamer.name().toString().toStdString() << endl;
+            streamer.readNextStartElement();
+        //   cout << "-1, be looking at: " << streamer.name().toString().toStdString() << endl;
+            temp.fromAddress = streamer.readElementText();
+
+
+            streamer.readNextStartElement();
+          //  cout << "0 " << streamer.name().toString().toStdString() << endl;
+            temp.toAddress = streamer.readElementText();
+
+            streamer.readNextStartElement();
+            //cout << "1 " << streamer.name().toString().toStdString() << endl;
+            temp.streetName = streamer.readElementText();
+
+
+            streamer.readNextStartElement();
+            //cout << "2 " << streamer.name().toString().toStdString() << endl;
+            temp.streetNum = streamer.readElementText();
+
+            streamer.readNextStartElement();
+            //cout << "3 " << streamer.name().toString().toStdString() << endl;
+            if(streamer.name() == "STSFX")
+            {
+                temp.streetSFX = streamer.readElementText();
+                streamer.readNextStartElement();
+            }
+
+          //  cout << "4 " << streamer.name().toString().toStdString() << endl;
+            temp.direction = streamer.readElementText();
+
+
+            streamer.readNextStartElement();
+          // cout << "5 " << streamer.name().toString().toStdString() << endl;
+
+            temp.zipCode = streamer.readElementText();
+
+
+            streamer.readNextStartElement();
+
+          //  cout << "before i wash looking at: " << streamer.name().toString().toStdString() << endl;
+
+            while(streamer.name() == "LATITUDE")
+            {
+                grid.lattitude = streamer.readElementText();
+
+
+                streamer.readNextStartElement();
+                grid.longitude = streamer.readElementText();
+
+                streamer.readNextStartElement();
+
+                temp.hasAlready.insert(grid);
+                temp.waypoints.push_back(grid);
+
+            }
+            streamer.readNextStartElement();
+            cout << "i ended at: " << temp.streetName.toStdString() << endl;
+        }
+        else
+        {
+            cout << "WTF BRO?? with: " << streamer.name().toString().toStdString() << endl;
+            cout << "the counter is at: " << counter << endl;
+            break;
+        }
+
+
+        if(streamer.hasError())
+        {
+            cout << streamer.errorString().toStdString() << endl;
+        }
+
+        if(master.count(temp.streetName))
+        {
+            for(unsigned int i = 0; i < temp.waypoints.size() ; ++i)
+            {
+                if(!master[temp.streetName].hasAlready.count(temp.waypoints[i]))
+                {
+                    master[temp.streetName].hasAlready.insert(temp.waypoints[i]);
+                    master[temp.streetName].waypoints.push_back(temp.waypoints[i]);
+                }
+            }
+            std::sort(master[temp.streetName].waypoints.begin(),master[temp.streetName].waypoints.end());
+        }
+        else
+            master[temp.streetName] = temp;
+    }
+    cout << "my ass donzo\n";
+    writeOut(master);
+
+    return 0;
+}
