@@ -1,6 +1,16 @@
 BUGS SO FAR
 - STREETS W/ THE SAME NAME BUT ARE OF DIFFERENT KINDS, IE TIPTON WAY VS TIPTON TERRANCE
+   - EDIT FIXED 4:12 4/16/19. FIXED W/ 
+     reader.readNextStartElement();
+          if(prev == "FREMONT VILLAS")
+          {
+              cout << "skipping\n";
+              reader.skipCurrentElement();
+              prev = "";
+          }
+    - HIDDEN HEX VALUE MESSES UP XML READER.
 
 NEED TO DOS:
-- CONSTRUCT GRAPH.
-- FIND THE POINT OF INTERSECTIONS? AND 
+- CONSTRUCT GRAPH
+- FIND THE POINT OF INTERSECTIONS
+- COORDINATE W/ GUI
