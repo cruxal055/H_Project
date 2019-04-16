@@ -6,6 +6,7 @@
 #include <QMap>
 #include <cmath>
 #include <sstream>
+#include <iostream>
 
 using namespace std;
 
@@ -31,11 +32,18 @@ void convert(QXmlStreamReader &reader, QXmlStreamWriter &xmlWriter)
     QString text, key;
     QMap<QString, QString> data;
     QList<QXmlStreamAttribute> letsHope;
-    
-
+    xmlWriter.writeStartElement("EAGLE_ROCK");
+    QString prev;
     while(!reader.atEnd())
     {
+
         reader.readNextStartElement();
+        if(prev == "FREMONT VILLAS")
+        {
+            cout << "skipping\n";
+            reader.skipCurrentElement();
+            prev = "";
+        }
         if(reader.name() == "SimpleData")
         {
             do
@@ -45,35 +53,80 @@ void convert(QXmlStreamReader &reader, QXmlStreamWriter &xmlWriter)
                 data[key] = reader.readElementText();
                 reader.readNext();
             }while(reader.name() == "SimpleData"); //previously, it was, while(reader.name() != "SimpleData");
-        } //added brackets here
+        } //added brackets her
         if(reader.name() == "LineString")
         {
+            if(reader.hasError())
+                cout << "0000\n";
             reader.readNextStartElement();
             data[reader.name().toString()] = reader.readElementText();
+            if(reader.hasError())
+            {
+                cout << "the name is: " << reader.name().toString().toStdString() << endl;
+                cout << reader.error() << endl;
+                cout << "zzz"
+                        "\n";
+            }
             if(data["ZIP_L"] == "90041" || data["ZIP_L"] == "90042" || data["ZIP_L"] == "90065")
             {
                 xmlWriter.writeStartElement("STREET");
                 for(auto it = data.begin(); it != data.end(); ++it)
                 {
                     if(it.key() == "ADLF")
+                    {
                         xmlWriter.writeTextElement("FROM_ADDRESS", it.value());
+                    }
                     else
+                    {
                        if(it.key() == "ADRT")
+                       {
                            xmlWriter.writeTextElement("TO_ADDRESS", it.value());
+                       }
                        else
+                       {
                            if(it.key() == "coordinates")
+                           {
                                writeOutWayPoints(xmlWriter, it.value());
+                           }
                            else
+                           {
                               if(writeOut(it.key()))
+                              {
                                 xmlWriter.writeTextElement(it.key(), it.value());
+                              }
+                           }
+                       }
+                    }
+                    if(reader.hasError())
+                        cout << "3\n";
                 }
                 xmlWriter.writeEndElement();
+              //  cout << "looked at: " << data["STNAME"].toStdString() << endl;
+                prev = data["STNAME"];
                 data.clear();
              }
+            if(reader.hasError())
+            {
+                cout << "reached an errror: " << reader.errorString().toStdString() << endl;
+                cout << "the size of data is: " << data.size() << endl;
+                cout << "the previous was: " << prev.toStdString() << endl;
+            }
         }
+
+
     }
+    xmlWriter.writeEndElement();
     xmlWriter.writeEndDocument();
     qDebug() << "done!\n";
+}
+
+bool writeOut(QString value)
+{
+    static QStringList whatIneed = {"STNAME", "STNUM", "STSFX", "TDIR", "ZIP_L"};
+    bool needIt = false;
+    for(int i = 0; i < whatIneed.size(); ++i)
+        needIt |= value == whatIneed[i];
+    return needIt;
 }
 
 void openFiles(QFile &in, QFile &out, QXmlStreamReader &reader, QXmlStreamWriter &xmlWriter)
@@ -84,23 +137,12 @@ void openFiles(QFile &in, QFile &out, QXmlStreamReader &reader, QXmlStreamWriter
        qDebug() << "Cannot read file" << in.errorString();
        exit(0);
     }
-    out.setFileName("streets.xml");
+    out.setFileName("boostedAnimal.xml");
     out.open(QIODevice::WriteOnly);
     reader.setDevice(&in);
     xmlWriter.setDevice(&out);
     xmlWriter.setAutoFormatting(true);
     xmlWriter.writeStartDocument();
-}
-
-
-bool writeOut(QString value)
-{
-    static QStringList whatIneed = {"ASSETID", "STNAME", "STNUM", "STSFX", "TDIR",
-                                    "ZIP_L", "SFXDIR"};
-    bool needIt = false;
-    for(int i = 0; i < whatIneed.size(); ++i)
-        needIt |= value == whatIneed[i];
-    return needIt;
 }
 
 void writeOutWayPoints(QXmlStreamWriter &xmlWriter, const QString &points)
@@ -109,15 +151,15 @@ void writeOutWayPoints(QXmlStreamWriter &xmlWriter, const QString &points)
     string point, lat,lon;
     size_t pos;
     ss<<points.toStdString();
-    xmlWriter.writeStartElement("COORDINATES");
+    //xmlWriter.writeStartElement("COORDINATES");
     while(ss>>point)
     {
-        xmlWriter.writeStartElement("WAYPOINT");
+        //xmlWriter.writeStartElement("WAYPOINT");
         lon = point.substr(0, pos = point.find(','));
         lat = point.substr(pos+1);
         xmlWriter.writeTextElement("LATITUDE", lat.c_str());
         xmlWriter.writeTextElement("LONGITUDE", lon.c_str());
-        xmlWriter.writeEndElement();
+      //  xmlWriter.writeEndElement();
     }
-    xmlWriter.writeEndElement();
+   // xmlWriter.writeEndElement();
 }
