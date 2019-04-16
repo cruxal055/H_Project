@@ -8,6 +8,7 @@
 
 using namespace std;
 
+#define sSet set<street>
 
 struct range
 {
@@ -106,7 +107,6 @@ class street
         vector<coordinates> waypoints;
         set<coordinates> hasAlready;
 
-
         street()
         {
             fromAddress = toAddress = streetNum = zipCode = "";
@@ -143,14 +143,31 @@ class street
             }
             return *this;
         }
+        friend bool operator<=(const street &o1 ,const street &o2)
+        {
+            return o1.fromAddress.toInt() <= o2.fromAddress.toInt();
+        }
+
+        friend bool operator>=(const street &o1 ,const street &o2)
+        {
+            return o1.fromAddress.toInt() >= o2.fromAddress.toInt();
+        }
+        friend bool operator>(const street &o1 ,const street &o2)
+        {
+            return o1.fromAddress.toInt() > o2.fromAddress.toInt();
+        }
+        friend bool operator<(const street &o1 ,const street &o2)
+        {
+            return o1.fromAddress.toInt() < o2.fromAddress.toInt();
+        }
 };
 
 
-void writeOut(map<QString, street> &toOutput)
+void writeOut(map<QString, sSet> &toOutput)
 {
     QFile out;
     QXmlStreamWriter output;
-    out.setFileName("sanitized.xml");
+    out.setFileName("sanitized3_0.xml");
     out.open(QIODevice::WriteOnly);
     output.setDevice(&out);
     output.setAutoFormatting(true);
@@ -158,38 +175,57 @@ void writeOut(map<QString, street> &toOutput)
     output.writeStartElement("EAGLE_ROCK");
     for(auto i = toOutput.begin(); i != toOutput.end(); ++i)
     {
-      output.writeStartElement("STREET");
-       output.writeTextElement("FROM_ADDRESS", i->second.fromAddress);
-       output.writeTextElement("TO_ADDRESS", i->second.toAddress);
-       output.writeTextElement("STREET_NAME", i->second.streetName);
-       output.writeTextElement("STREET_NUM", i->second.streetNum);
-       output.writeTextElement("STREET_SFX", i->second.streetSFX);
-       output.writeTextElement("TDIR", i->second.direction);
-       output.writeTextElement("ZIP", i->second.zipCode);
-       for(unsigned int j = 0; j < i->second.waypoints.size(); ++j)
+        auto temp = i->second.begin();
+        output.writeStartElement("STREET");
+        output.writeTextElement("STREET_NAME", temp->streetName);
+        output.writeTextElement("STREET_NUM", temp->streetNum);
+        output.writeTextElement("STREET_SFX", temp->streetSFX);
+        output.writeTextElement("TDIR", temp->direction);
+        output.writeTextElement("ZIP", temp->zipCode);
+
+       for(auto j = i->second.begin(); j != i->second.end(); ++j)
        {
-           output.writeTextElement("LATTITUDE" , i->second.waypoints[j].lattitude);
-           output.writeTextElement("LONGITUDE" , i->second.waypoints[j].longitude);
+           output.writeTextElement("FROM_ADDRESS", j->fromAddress);
+           output.writeTextElement("TO_ADDRESS", j->toAddress);
+       }
+       for(auto j = i->second.begin(); j != i->second.end(); ++j)
+       {
+           for(unsigned int k = 0; k < j->waypoints.size(); ++k)
+           {
+               output.writeTextElement("LATTITUDE" , j->waypoints[k].lattitude);
+               output.writeTextElement("LONGITUDE" ,  j->waypoints[k].longitude);
+           }
        }
        output.writeEndElement();
     }
     output.writeEndElement();
     output.writeEndDocument();
-    cout << "i wrote out\n";
 
 }
 
+void justDisplay(map<QString, sSet> &toOutput)
+{
+    for(auto i = toOutput.begin(); i != toOutput.end() ; ++i)
+    {
+        cout << "for street: " << i->first.toStdString() << endl;
+        for(auto j = i->second.begin(); j != i->second.end(); ++j)
+        {
+            cout << "FROM_ADDRESS: " << j->fromAddress.toStdString() << endl;
+            cout << "TO_ADDRESS: " << j->toAddress.toStdString() << endl;;
+        }
+        cout << endl;
+    }
+}
 int main(int argc, char *argv[])
 {
     QFile stream;
-    stream.setFileName("streets4.xml");
+    stream.setFileName("boostedAnimal.xml");
     stream.open(QFile::ReadOnly | QFile::Text);
-    map<QString,street> master;
+    map<QString,sSet> master;
     QXmlStreamReader streamer;
     streamer.setDevice(&stream);
     streamer.readNextStartElement();
     streamer.readNextStartElement();
-    int counter = 0;
     while(!streamer.atEnd())
     {
       //  cout << "the counter is: " << counter << endl;
@@ -202,46 +238,35 @@ int main(int argc, char *argv[])
 
         if(streamer.name() == "STREET" )
         {
-      //      cout << "be looking at: " << streamer.name().toString().toStdString() << endl;
             streamer.readNextStartElement();
-        //   cout << "-1, be looking at: " << streamer.name().toString().toStdString() << endl;
             temp.fromAddress = streamer.readElementText();
 
 
             streamer.readNextStartElement();
-          //  cout << "0 " << streamer.name().toString().toStdString() << endl;
             temp.toAddress = streamer.readElementText();
 
             streamer.readNextStartElement();
-            //cout << "1 " << streamer.name().toString().toStdString() << endl;
             temp.streetName = streamer.readElementText();
 
 
             streamer.readNextStartElement();
-            //cout << "2 " << streamer.name().toString().toStdString() << endl;
             temp.streetNum = streamer.readElementText();
 
             streamer.readNextStartElement();
-            //cout << "3 " << streamer.name().toString().toStdString() << endl;
             if(streamer.name() == "STSFX")
             {
                 temp.streetSFX = streamer.readElementText();
                 streamer.readNextStartElement();
             }
 
-          //  cout << "4 " << streamer.name().toString().toStdString() << endl;
             temp.direction = streamer.readElementText();
-
-
             streamer.readNextStartElement();
-          // cout << "5 " << streamer.name().toString().toStdString() << endl;
 
             temp.zipCode = streamer.readElementText();
 
 
             streamer.readNextStartElement();
 
-          //  cout << "before i wash looking at: " << streamer.name().toString().toStdString() << endl;
 
             while(streamer.name() == "LATITUDE")
             {
@@ -258,38 +283,19 @@ int main(int argc, char *argv[])
 
             }
             streamer.readNextStartElement();
-            cout << "i ended at: " << temp.streetName.toStdString() << endl;
         }
         else
         {
             cout << "WTF BRO?? with: " << streamer.name().toString().toStdString() << endl;
-            cout << "the counter is at: " << counter << endl;
             break;
         }
-
-
         if(streamer.hasError())
         {
             cout << streamer.errorString().toStdString() << endl;
         }
-
-        if(master.count(temp.streetName))
-        {
-            for(unsigned int i = 0; i < temp.waypoints.size() ; ++i)
-            {
-                if(!master[temp.streetName].hasAlready.count(temp.waypoints[i]))
-                {
-                    master[temp.streetName].hasAlready.insert(temp.waypoints[i]);
-                    master[temp.streetName].waypoints.push_back(temp.waypoints[i]);
-                }
-            }
-            std::sort(master[temp.streetName].waypoints.begin(),master[temp.streetName].waypoints.end());
-        }
-        else
-            master[temp.streetName] = temp;
+        master[temp.streetName + " " + temp.streetSFX].insert(temp);
     }
-    cout << "my ass donzo\n";
     writeOut(master);
-
+   // justDisplay(master);
     return 0;
 }
