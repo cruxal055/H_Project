@@ -8,9 +8,12 @@ BUGS SO FAR
               reader.skipCurrentElement();
               prev = "";
           }
-    - HIDDEN HEX VALUE MESSES UP XML READER.
+    - HIDDEN HEX VALUE MESSES UP XML READER
+    - EDIT FIXED 5:00 4/16/19. 
+    
 
 NEED TO DOS:
 - CONSTRUCT GRAPH
 - FIND THE POINT OF INTERSECTIONS
 - COORDINATE W/ GUI
+
