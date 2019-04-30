@@ -1,0 +1,4 @@
+this is when i start reconfiguring the binary tree of the map to be sorted based on the difference between lat and long, 
+not just differences on lat
+- I tend to be extremely wary when using doubles for precarious things as such bc of their tendency to be imprecise. 
+- Bits are fininite, but decimals can easily become infinite. 
