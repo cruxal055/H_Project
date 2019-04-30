@@ -73,23 +73,81 @@ struct coordinates
 
         friend bool operator<=(const coordinates &o1 ,const coordinates &o2)
         {
-            return o1.longitude <= o2.longitude;
+            return o1.lattitude <= o2.lattitude;
         }
 
         friend bool operator>=(const coordinates &o1 ,const coordinates &o2)
         {
-            return o1.longitude >= o2.longitude;
+            return o1.lattitude >= o2.lattitude;
         }
         friend bool operator>(const coordinates &o1 ,const coordinates &o2)
         {
-            return o1.longitude > o2.longitude;
+            return o1.lattitude > o2.lattitude;
         }
         friend bool operator<(const coordinates &o1 ,const coordinates &o2)
         {
-            return o1.longitude < o2.longitude;
+            return o1.lattitude < o2.lattitude;
+        }
+        friend bool operator==(const coordinates &o1 ,const coordinates &o2)
+        {
+            return o1.lattitude ==  o2.lattitude;
         }
 };
 
+
+struct address
+{
+    public:
+        QString lattitude, longitude;
+        address()
+        {
+            lattitude = longitude = "";
+        }
+
+        address(const QString &lat, const QString &lon)
+        {
+            lattitude = lat;
+            longitude = lon;
+        }
+
+        address &operator=(const address &other)
+        {
+            if(this != &other)
+            {
+                lattitude = other.lattitude;
+                longitude = other.longitude;
+            }
+            return *this;
+        }
+
+        address(const address &other)
+        {
+            lattitude = other.lattitude;
+            longitude = other.longitude;
+        }
+
+        friend bool operator<=(const address &o1 ,const address &o2)
+        {
+            return o1.lattitude <= o2.lattitude;
+        }
+
+        friend bool operator>=(const address &o1 ,const address &o2)
+        {
+            return o1.lattitude >= o2.lattitude;
+        }
+        friend bool operator>(const address &o1 ,const address &o2)
+        {
+            return o1.lattitude > o2.lattitude;
+        }
+        friend bool operator<(const address &o1 ,const address &o2)
+        {
+            return o1.lattitude < o2.lattitude;
+        }
+        friend bool operator==(const address &o1 ,const address &o2)
+        {
+            return o1.lattitude ==  o2.lattitude;
+        }
+};
 struct vertex
 {
     int rank, previous;

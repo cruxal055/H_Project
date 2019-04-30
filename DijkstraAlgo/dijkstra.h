@@ -9,6 +9,13 @@
 #include <map>
 #include <iostream>
 #include <queue>
+#include <cmath>
+#include <limits>
+#include <climits>
+
+#define PI 4.0*atan(1.0)
+
+enum errors{ BAD_ADDRESS  };
 
 
 using namespace std;
@@ -19,7 +26,7 @@ class dijkstra
 {
 
     public:
-        dijkstra(const QString &lat, const QString &lon);
+        dijkstra();
         ~dijkstra();
 
     private:
@@ -31,17 +38,18 @@ class dijkstra
     coordinates focus;
 
     void readIn();
+    coordinates closestOne(const coordinates &noFind, const QString &streetName, const QString &zipCode);
+    double performHaversine(const coordinates &one, const coordinates &two);
 
     public:
-        void perform(const QString &lat, const QString &lon);
-
+        void perform(const QString &lat, const QString &lon, const QString &streetName);
+        void statusReport();
 };
 
-dijkstra::dijkstra(const QString &lat, const QString &lon)
+dijkstra::dijkstra()
 {
     graph = new vector<indexo>[80000];
     allVertexes = new vertex[80000];
-    focus = coordinates(lat,lon);
     legend = map<coordinates,int>();
     readIn();
 }
@@ -134,13 +142,13 @@ void dijkstra::readIn()
         }
         input.readNextStartElement();
     }
-    cout << "done\n";
+    statusReport();
 }
 
-void dijkstra::perform(const QString &lat, const QString &lon)
+void dijkstra::perform(const QString &lat, const QString &lon, const QString &streetName)
 {
     coordinates toSearch(lat,lon);
-    int pos = legend[toSearch];
+    int pos = legend[toSearch];   
     allVertexes[pos].shortestPath = 0;
     priority_queue<vertex> pq;
     pq.push(allVertexes[pos]);
@@ -165,6 +173,39 @@ void dijkstra::perform(const QString &lat, const QString &lon)
     }
 }
 
+//note to self, -1 indicates that the address is not possible, otherwise it gives a coordinate
+coordinates dijkstra::closestOne(const coordinates &noFind, const QString &streetName, const QString &zipCode)
+{
+    if(closest[streetName].begin()->first.lattitude > zipCode || closest[streetName].end()->first.lattitude < zipCode )
+        throw BAD_ADDRESS;
+    else
+    {
+        closest[streetName][noFind] = vector<coordinates>();
+        coordinates toReturn;
+        auto pos = closest[streetName].find(noFind);
+        --pos;
+        unsigned int shortest = 0;
+        double shortestPath = numeric_limits<double>::max(), hold;
+        for(unsigned int i = 0; i < pos->second.size(); ++i)
+        {
+            if((hold = performHaversine(pos->second[i], noFind)) < shortestPath)
+            {
+                shortestPath = hold;
+                shortest = i;
+            }
+        }
+        toReturn = pos->second[shortest];
+        closest[streetName].erase(++pos);
+        return toReturn;
+    }
+}
+
+void dijkstra::statusReport()
+{
+    cout << legend.size() << endl;
+    cout << closest.size() << endl;
+
+}
 dijkstra::~dijkstra()
 {
     delete []allVertexes;
@@ -172,5 +213,14 @@ dijkstra::~dijkstra()
 }
 
 
+double dijkstra::performHaversine(const coordinates &one, const coordinates &two)
+{
+   double lat1 = one.lattitude.toDouble() * (PI/180.), long1 = one.longitude.toDouble() * (PI/180.);
+   double lat2 = two.lattitude.toDouble() * (PI/180.), long2 = two.longitude.toDouble()* (PI/180.),
+           dLat = lat2 - lat1, dLong = long2 - long1;
+   double computation = asin(sqrt(sin(dLat / 2.) * sin(dLat / 2.) + cos(lat1) * cos(lat2) * sin(dLong / 2.) * sin(dLong / 2.)));
+   double d = 3959.9 * 2 * computation;
+   return d;
+}
 
 #endif // DIJKSTRA_H
