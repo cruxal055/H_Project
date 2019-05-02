@@ -12,6 +12,7 @@
 #include <cmath>
 #include <limits>
 #include <climits>
+#include <stack>
 
 #define PI 4.0*atan(1.0)
 
@@ -33,7 +34,8 @@ class dijkstra
     vector<indexo> *graph;
     vertex *allVertexes;
     map<coordinates, int> legend;
-    map<QString,map<coordinates, vector<coordinates> >  > closest;
+    map<QString,map<address, vector<coordinates> >  > closest;
+    stack<coordinates> shortest;
 
     coordinates focus;
 
@@ -42,8 +44,9 @@ class dijkstra
     double performHaversine(const coordinates &one, const coordinates &two);
 
     public:
-        void perform(const QString &lat, const QString &lon, const QString &streetName);
-        void statusReport();
+    double getShortestPath(const QString &lat, const QString &lon);
+    void perform(const QString &lat, const QString &lon, const QString &streetName);
+    void statusReport();
 };
 
 dijkstra::dijkstra()
@@ -51,6 +54,7 @@ dijkstra::dijkstra()
     graph = new vector<indexo>[80000];
     allVertexes = new vertex[80000];
     legend = map<coordinates,int>();
+    shortest = stack<coordinates>();
     readIn();
 }
 
@@ -73,7 +77,7 @@ void dijkstra::readIn()
     {
         if(input.name() == "STREET")
         {
-            coordinates addressRange;
+            address addressRange;
 
 
             input.readNextStartElement();
@@ -105,7 +109,7 @@ void dijkstra::readIn()
                     input.readNextStartElement();
 
                     rank1 = input.readElementText().toInt();
-                    input.readNextStartElement(); //from vertex
+                     input.readNextStartElement(); //from vertex
 
                      input.readNextStartElement();
 
@@ -127,11 +131,17 @@ void dijkstra::readIn()
                     graph[rank2].push_back(indexo(rank1,weight));
                     legend[one] = rank1;
                     legend[two] = rank2;
-                    if(!closest[street].count(one))
+
+                    allVertexes[rank1].rank = rank1;
+                    allVertexes[rank2].rank = rank2;
+                    allVertexes[rank1].coordinate = one;
+                    allVertexes[rank2].coordinate = two;
+
+
+                    if(!closest[street].count(addressRange))
                         closest[street][addressRange] = vector<coordinates>();
                     closest[street][addressRange].push_back(one);
                     closest[street][addressRange].push_back(two);
-
                     input.readNextStartElement();
                     input.readNextStartElement();
 //                    cout << "ended with: " << input.name().toString().toStdString() << endl;
@@ -148,7 +158,7 @@ void dijkstra::readIn()
 void dijkstra::perform(const QString &lat, const QString &lon, const QString &streetName)
 {
     coordinates toSearch(lat,lon);
-    int pos = legend[toSearch];   
+    int pos = legend[toSearch];
     allVertexes[pos].shortestPath = 0;
     priority_queue<vertex> pq;
     pq.push(allVertexes[pos]);
@@ -173,16 +183,18 @@ void dijkstra::perform(const QString &lat, const QString &lon, const QString &st
     }
 }
 
-//note to self, -1 indicates that the address is not possible, otherwise it gives a coordinate
 coordinates dijkstra::closestOne(const coordinates &noFind, const QString &streetName, const QString &zipCode)
 {
     if(closest[streetName].begin()->first.lattitude > zipCode || closest[streetName].end()->first.lattitude < zipCode )
+    {
         throw BAD_ADDRESS;
+    }
     else
     {
-        closest[streetName][noFind] = vector<coordinates>();
+        address search(zipCode);
+        closest[streetName][search] = vector<coordinates>();
         coordinates toReturn;
-        auto pos = closest[streetName].find(noFind);
+        auto pos = closest[streetName].find(search);
         --pos;
         unsigned int shortest = 0;
         double shortestPath = numeric_limits<double>::max(), hold;
@@ -198,6 +210,26 @@ coordinates dijkstra::closestOne(const coordinates &noFind, const QString &stree
         closest[streetName].erase(++pos);
         return toReturn;
     }
+}
+
+
+double dijkstra::getShortestPath(const QString &lat, const QString &lon)
+{
+    shortest = stack<coordinates>();
+    coordinates wtf(lat,lon);
+    double distance;
+    if(!legend.count(wtf))
+    {
+        //use no find
+    }
+    int pos = legend[wtf];
+    distance = allVertexes[pos].shortestPath;
+    while(pos != -1)
+    {
+        shortest.push(allVertexes[pos].coordinate);
+        pos = allVertexes[pos].previous;
+    }
+    return distance;
 }
 
 void dijkstra::statusReport()

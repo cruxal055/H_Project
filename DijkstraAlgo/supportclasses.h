@@ -86,13 +86,14 @@ struct coordinates
         }
         friend bool operator<(const coordinates &o1 ,const coordinates &o2)
         {
-            return o1.lattitude < o2.lattitude;
+            return (o1.lattitude.toDouble() + o1.longitude.toDouble()) < (o2.lattitude.toDouble()+ o2.longitude.toDouble());
         }
         friend bool operator==(const coordinates &o1 ,const coordinates &o2)
         {
-            return o1.lattitude ==  o2.lattitude;
+            return o1.lattitude ==  o2.lattitude && o2.longitude == o1.longitude;
         }
 };
+
 
 
 struct address
@@ -102,6 +103,11 @@ struct address
         address()
         {
             lattitude = longitude = "";
+        }
+        address(const QString &lat)
+        {
+            lattitude = lat;
+            longitude = "";
         }
 
         address(const QString &lat, const QString &lon)
